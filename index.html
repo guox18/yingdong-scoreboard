@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>瀛东村中秋国庆双节活动 · 记分系统</title>
+<script src="./vendor/supabase.js"></script>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;background:#f7efe3;color:#33221a}
+.view{display:none}.view.active{display:block}
+#loginView.active{display:flex}
+#loginView{min-height:100vh;align-items:center;justify-content:center;padding:20px;
+  background:radial-gradient(circle at 50% 10%,#c8402f 0%,#9c1f18 38%,#5e0f0f 100%)}
+.login-card{width:100%;max-width:390px;background:rgba(255,255,255,.97);border-radius:18px;
+  padding:34px 26px 26px;text-align:center;border:1px solid rgba(217,164,65,.55);
+  box-shadow:0 22px 55px rgba(0,0,0,.4)}
+.login-card .moon{font-size:46px;line-height:1;filter:drop-shadow(0 0 12px rgba(217,164,65,.7))}
+.login-card h1{margin:10px 0 4px;font-size:26px;color:#9c1f18;letter-spacing:5px}
+.login-card h2{margin:0 0 24px;font-size:13px;font-weight:500;color:#a8763a;letter-spacing:1px}
+.field{text-align:left;margin-bottom:14px}
+.field label{display:block;font-size:13px;color:#8a6a52;margin-bottom:6px}
+.field input{width:100%;padding:12px 14px;border:1.5px solid #e2d3c0;border-radius:10px;
+  font-size:16px;outline:none;background:#fffdf9;color:#33221a}
+.field input:focus{border-color:#c8402f;box-shadow:0 0 0 3px rgba(200,64,47,.12)}
+#loginBtn{width:100%;padding:13px;border:none;border-radius:10px;cursor:pointer;margin-top:6px;
+  background:linear-gradient(135deg,#c8402f,#8f1712);color:#ffe9c4;font-size:17px;
+  letter-spacing:6px;font-weight:600}
+.err-msg{color:#c8402f;font-size:13px;height:20px;margin-top:10px}
+.tip{margin:14px 0 0;font-size:12px;color:#b0a094;line-height:1.8}
+.mode-tip{margin-top:12px;font-size:11px;padding:6px 10px;border-radius:8px;line-height:1.6}
+.mode-local{background:#fff7e6;color:#a8763a;border:1px dashed #e8cf9a}
+.mode-cloud{background:#eafaf0;color:#1f8a4c;border:1px dashed #9ddcb6}
+.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
+  gap:12px;flex-wrap:wrap;padding:12px 18px;color:#ffe9c4;
+  background:linear-gradient(135deg,#9c1f18,#c8402f);box-shadow:0 3px 14px rgba(120,20,10,.28)}
+.brand{font-size:17px;font-weight:700}
+.userbox{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.badge{background:rgba(255,255,255,.16);padding:5px 12px;border-radius:20px;font-size:13px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ffd166;margin-right:6px}
+.dot.on{background:#7dffa8}.dot.off{background:#ff9b9b}
+.ghost{background:rgba(255,255,255,.14);border:1px solid rgba(255,233,196,.45);color:#ffe9c4;
+  padding:6px 12px;border-radius:8px;font-size:13px;cursor:pointer}
+.ghost.danger{border-color:rgba(255,180,180,.6);color:#ffd9d9}
+.card{background:#fff;margin:16px;border-radius:14px;overflow:hidden;border:1px solid #f0e2ce;
+  box-shadow:0 4px 18px rgba(120,80,40,.1)}
+.card-title{padding:14px 18px;font-size:15px;font-weight:600;color:#8a5a2b;
+  border-bottom:1px solid #f5ece0;background:#fdf8f0}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:15px}
+thead th{background:#fbf1e2;color:#8a5a2b;font-weight:600;font-size:14px;padding:12px 10px;
+  text-align:center;white-space:nowrap;border-bottom:2px solid #efdcc0}
+tbody td{padding:11px 10px;text-align:center;border-bottom:1px solid #f5ece0}
+tbody tr:hover{background:#fffaf2}
+#adminTable th[data-k]{cursor:pointer;user-select:none}
+#adminTable th.sorted{color:#c8402f}
+#adminTable th.sorted::after{content:'▲';font-size:9px;margin-left:4px;vertical-align:middle}
+#adminTable th.sorted[data-dir="desc"]::after{content:'▼'}
+.idx-cell{cursor:pointer;font-weight:700;color:#9c1f18;user-select:none}
+.caret{display:inline-block;width:15px;font-size:11px;color:#c9a06a}
+.total{font-weight:700;color:#c8402f;font-size:16px}
+.muted{color:#ab9c8c;font-size:13px}
+.detail-row td{padding:0;background:#fdf8f0;border-bottom:2px solid #f0e2ce;text-align:left}
+.detail{padding:12px 16px 16px}
+.detail-head{font-size:13px;color:#8a5a2b;margin-bottom:8px}
+.mini{font-size:13px;background:#fff;border:1px solid #f0e2ce;border-radius:8px;overflow:hidden}
+.mini th{background:#fbf1e2;padding:7px 10px;font-size:12px;position:static;border-bottom:1px solid #f0e2ce}
+.mini td{padding:7px 10px;font-size:13px;border-bottom:1px solid #f7f0e6;text-align:center}
+.plus{color:#1f8a4c;font-weight:700}
+.minus{color:#c8402f;font-weight:700}
+.del{background:#fff0ee;color:#c8402f;border:1px solid #f3c9c2;border-radius:6px;
+  padding:3px 10px;font-size:12px;cursor:pointer}
+.empty{padding:16px;color:#ab9c8c;font-size:13px;text-align:center}
+.hint{margin:0 18px 28px;font-size:12px;color:#a8977f;line-height:1.8}
+.op-cell{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}
+.op-cell select,.op-cell input{padding:8px 10px;border:1.5px solid #e2d3c0;border-radius:8px;
+  font-size:14px;outline:none;background:#fffdf9;color:#33221a;font-family:inherit}
+.op-cell select{width:90px}.op-cell input{width:78px;text-align:center}
+.addBtn{background:linear-gradient(135deg,#e0a83e,#c8862a);color:#fff;border:none;
+  padding:9px 20px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer}
+.addBtn:disabled{opacity:.5}
+@keyframes flash{0%{background:#fff2c9}100%{background:transparent}}
+.flash{animation:flash .9s ease}
+.toast{position:fixed;left:50%;bottom:40px;transform:translate(-50%,20px);
+  background:rgba(40,25,15,.93);color:#ffe9c4;padding:11px 24px;border-radius:30px;font-size:14px;
+  opacity:0;pointer-events:none;transition:.25s;z-index:99;white-space:nowrap;max-width:90vw}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.err{background:rgba(160,30,20,.95);color:#fff}
+@media(max-width:560px){.brand{font-size:15px}.card{margin:10px}tbody td{padding:9px 6px;font-size:14px}}
+</style>
+</head>
+<body>
+
+<section id="loginView" class="view active">
+  <div class="login-card">
+    <div class="moon">🌕</div>
+    <h1>瀛东村</h1>
+    <h2>中秋 · 国庆双节活动 记分系统</h2>
+    <div class="field">
+      <label>登录账号</label>
+      <input id="account" type="text" placeholder="请输入账号" autocomplete="off" spellcheck="false">
+    </div>
+    <button id="loginBtn">登 录</button>
+    <div class="err-msg" id="errMsg"></div>
+    <p class="tip">管理员：admin　｜　计分员：a1 ~ a6</p>
+    <div id="loginModeTip" class="mode-tip mode-local">当前：本地模式（仅本机浏览器）。填写代码里的 Supabase 配置可自动切换为多设备云端同步。</div>
+  </div>
+</section>
+
+<section id="adminView" class="view">
+  <header class="topbar">
+    <div class="brand">🌕 总分榜</div>
+    <div class="userbox">
+      <span class="badge"><i class="dot" id="connA"></i>admin</span>
+      <span class="badge" id="modeA">本地</span>
+      <button class="ghost" id="adminExport">导出CSV</button>
+      <button class="ghost danger" id="adminReset">清空</button>
+      <button class="ghost" id="adminLogout">退出</button>
+    </div>
+  </header>
+  <div class="card">
+    <div class="table-wrap">
+      <table id="adminTable">
+        <thead><tr>
+          <th data-k="id" style="width:90px">序号</th>
+          <th data-k="投壶">投壶分</th>
+          <th data-k="套圈">套圈分</th>
+          <th data-k="答题">答题分</th>
+          <th data-k="total">总分</th>
+          <th>记录数</th>
+        </tr></thead>
+        <tbody id="adminBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <p class="hint">点击「序号」查看加分明细，可删除单条；点表头排序，再点切换升降序。</p>
+</section>
+
+<section id="scorerView" class="view">
+  <header class="topbar">
+    <div class="brand">✍️ 记分台</div>
+    <div class="userbox">
+      <span class="badge"><i class="dot" id="connS"></i><span id="scorerUser">计分员</span></span>
+      <span class="badge" id="modeS">本地</span>
+      <button class="ghost" id="scorerLogout">退出</button>
+    </div>
+  </header>
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:60px">序号</th><th>投壶</th><th>套圈</th><th>答题</th>
+          <th style="min-width:280px">加分操作</th>
+        </tr></thead>
+        <tbody id="scorerBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">我最近添加的记录（可撤销）</div>
+    <div id="myLog"></div>
+  </div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================================================================
+   想多设备实时同步：填下面两行即可（从 Supabase 项目 Settings→API 复制）
+   不想填：留空，自动本地模式，打开就能用
+   =================================================================== */
+const SUPABASE_URL      = 'https://uwldqvrtrwhsvibgqcta.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3bGRxdnJ0cndoc3ZpYmdxY3RhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0MjEzMTIsImV4cCI6MjEwNDk5NzMxMn0.aq4e3EzTGg7kkOxYaf3-_72iLcoJ5zun48kMA-WnEV4';
+/* =================================================================== */
+
+const CATS    = ['投壶','套圈','答题'];
+const SCORERS = ['a1','a2','a3','a4','a5','a6'];
+const ADMIN   = 'admin';
+const COUNT   = 30;
+const USER_KEY= 'ydc_user_v1';
+const LS_KEY  = 'ydc_records_v1';
+
+let mode = 'local';   // 'local' | 'cloud'
+let sb = null;
+let records = [];
+let user = null, role = null;
+let sortKey = 'total', sortDir = -1;
+const openRows = new Set();
+let lastCat = '投壶', lastScore = '1';
+let refreshTimer = null;
+
+/* ---------- 工具 ---------- */
+function fmtTime(t){
+  const d = new Date(t), p = n => String(n).padStart(2,'0');
+  return `${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function genId(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+}
+function calcScores(){
+  const map = {};
+  for(let i=1;i<=COUNT;i++) map[i] = {id:i,'投壶':0,'套圈':0,'答题':0,total:0,count:0};
+  for(const r of records){
+    const m = map[r.person];
+    if(!m) continue;
+    if(CATS.includes(r.cat)) m[r.cat] += r.score;
+    m.total += r.score; m.count++;
+  }
+  return map;
+}
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+let toastTimer=null;
+function toast(msg,isErr){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.className='toast show'+(isErr?' err':'');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{el.className='toast';},1800);
+}
+function setConn(on){
+  ['connA','connS'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.className = 'dot ' + (on?'on':'off');
+  });
+}
+function setModeBadge(){
+  const txt = mode === 'cloud' ? '云端同步' : '本地';
+  ['modeA','modeS'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.textContent = txt;
+  });
+  const lt = document.getElementById('loginModeTip');
+  if(lt){
+    if(mode === 'cloud'){
+      lt.className = 'mode-tip mode-cloud';
+      lt.textContent = '当前：云端模式，多设备实时同步已启用。';
+    }else{
+      lt.className = 'mode-tip mode-local';
+      lt.textContent = '当前：本地模式（仅本机浏览器）。填写代码里的 Supabase 配置可自动切换为多设备云端同步。';
+    }
+  }
+}
+
+/* ---------- 后端初始化 ---------- */
+function initBackend(){
+  if(window.supabase &&
+     typeof SUPABASE_URL === 'string' && SUPABASE_URL.startsWith('http') &&
+     typeof SUPABASE_ANON_KEY === 'string' && SUPABASE_ANON_KEY.length > 20){
+    try{
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      mode = 'cloud';
+      return;
+    }catch(e){
+      console.warn('Supabase 初始化失败，回退本地模式：', e);
+    }
+  }
+  mode = 'local';
+  sb = null;
+}
+
+/* ---------- 数据 API（双模式） ---------- */
+async function apiLoad(){
+  if(mode === 'cloud'){
+    const { data, error } = await sb.from('records')
+      .select('*').order('created_at',{ascending:true}).limit(5000);
+    if(error) throw error;
+    return (data||[]).map(r=>({
+      id:r.id, person:r.person, cat:r.cat, score:r.score,
+      by:r.scorer, time:new Date(r.created_at).getTime()
+    }));
+  }
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+async function apiInsert(rec){
+  if(mode === 'cloud'){
+    const { error } = await sb.from('records').insert({
+      person:rec.person, cat:rec.cat, score:rec.score, scorer:rec.by
+    });
+    if(error) throw error;
+  }else{
+    const all = await apiLoad();
+    all.push(rec);
+    localStorage.setItem(LS_KEY, JSON.stringify(all));
+  }
+}
+async function apiDelete(id){
+  if(mode === 'cloud'){
+    const { error } = await sb.from('records').delete().eq('id', id);
+    if(error) throw error;
+  }else{
+    const all = await apiLoad();
+    const next = all.filter(r => r.id !== id);
+    localStorage.setItem(LS_KEY, JSON.stringify(next));
+  }
+}
+async function apiReset(){
+  if(mode === 'cloud'){
+    const { error } = await sb.from('records')
+      .delete().neq('id','00000000-0000-0000-0000-000000000000');
+    if(error) throw error;
+  }else{
+    localStorage.setItem(LS_KEY, JSON.stringify([]));
+  }
+}
+
+/* ---------- 刷新与订阅 ---------- */
+async function refresh(silent){
+  try{
+    records = await apiLoad();
+    if(mode === 'cloud') setConn(true);
+    if(role === 'admin'){
+      renderAdmin();
+    }else if(role === 'scorer'){
+      if(!document.querySelector('#scorerBody tr')) renderScorer();
+      else updateScorerNumbers();
+      refreshMyLog();
+    }
+  }catch(e){
+    if(mode === 'cloud') setConn(false);
+    if(!silent) toast('数据加载失败：' + e.message, true);
+    console.error(e);
+  }
+}
+function scheduleRefresh(){
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(()=>refresh(true), 300);
+}
+function subscribeRealtime(){
+  if(mode === 'cloud' && sb){
+    sb.channel('records-ch')
+      .on('postgres_changes',{event:'*',schema:'public',table:'records'}, scheduleRefresh)
+      .subscribe(status => setConn(status === 'SUBSCRIBED'));
+  }else{
+    setConn(true);
+  }
+}
+
+/* 本地模式：其它标签页改动时同步 */
+window.addEventListener('storage', e => {
+  if(mode === 'local' && e.key === LS_KEY) refresh(true);
+});
+
+/* ---------- 登录 ---------- */
+function doLogin(){
+  const acc = document.getElementById('account').value.trim().toLowerCase();
+  const err = document.getElementById('errMsg');
+  if(!acc){ err.textContent = '请输入账号'; return; }
+  if(acc === ADMIN){ user = ADMIN; role = 'admin'; }
+  else if(SCORERS.includes(acc)){ user = acc; role = 'scorer'; }
+  else { err.textContent = '账号不存在，请输入 admin 或 a1 ~ a6'; return; }
+  err.textContent = '';
+  localStorage.setItem(USER_KEY, user);
+  enterApp();
+}
+function logout(){
+  localStorage.removeItem(USER_KEY);
+  user = null; role = null;
+  document.getElementById('account').value = '';
+  document.getElementById('errMsg').textContent = '';
+  showView('loginView');
+  setModeBadge();
+}
+function enterApp(){
+  if(role === 'admin'){
+    showView('adminView');
+  }else{
+    document.getElementById('scorerUser').textContent = user + ' · 计分员';
+    showView('scorerView');
+  }
+  setModeBadge();
+  refresh();
+  subscribeRealtime();
+}
+
+/* ---------- 管理员渲染 ---------- */
+function renderAdmin(){
+  const map = calcScores();
+  const list = Object.values(map).sort((a,b)=>{
+    const va=a[sortKey], vb=b[sortKey];
+    if(va!==vb) return (va-vb)*sortDir;
+    return a.id-b.id;
+  });
+  let html='';
+  for(const m of list){
+    const opened = openRows.has(m.id);
+    html += `<tr class="main-row" data-id="${m.id}">
+      <td class="idx-cell"><span class="caret">${opened?'▾':'▸'}</span>${m.id}</td>
+      <td>${m['投壶']}</td><td>${m['套圈']}</td><td>${m['答题']}</td>
+      <td class="total">${m.total}</td><td class="muted">${m.count}</td>
+    </tr>`;
+    if(opened) html += `<tr class="detail-row"><td colspan="6">${detailHTML(m.id)}</td></tr>`;
+  }
+  document.getElementById('adminBody').innerHTML = html;
+  document.querySelectorAll('#adminTable th[data-k]').forEach(th=>{
+    const k = th.dataset.k;
+    if(k === sortKey){ th.classList.add('sorted'); th.dataset.dir = sortDir>0?'asc':'desc'; }
+    else { th.classList.remove('sorted'); th.removeAttribute('data-dir'); }
+  });
+}
+function detailHTML(id){
+  const rs = records.filter(r=>r.person===id).sort((a,b)=>b.time-a.time);
+  if(!rs.length) return '<div class="empty">该选手暂无加分记录</div>';
+  let html = `<div class="detail"><div class="detail-head">${id} 号选手 · 共 ${rs.length} 条记录</div>
+    <table class="mini"><thead><tr>
+      <th>时间</th><th>项目</th><th>分值</th><th>记分员</th><th style="width:80px">操作</th>
+    </tr></thead><tbody>`;
+  for(const r of rs){
+    html += `<tr>
+      <td>${fmtTime(r.time)}</td><td>${r.cat}</td>
+      <td class="${r.score>=0?'plus':'minus'}">${r.score>0?'+':''}${r.score}</td>
+      <td>${r.by}</td>
+      <td><button class="del" data-rid="${r.id}">删除</button></td>
+    </tr>`;
+  }
+  return html + '</tbody></table></div>';
+}
+
+document.querySelectorAll('#adminTable th[data-k]').forEach(th=>{
+  th.addEventListener('click',()=>{
+    const k = th.dataset.k;
+    if(sortKey === k) sortDir = -sortDir;
+    else { sortKey = k; sortDir = (k === 'id') ? 1 : -1; }
+    renderAdmin();
+  });
+});
+
+document.getElementById('adminBody').addEventListener('click', async e=>{
+  const del = e.target.closest('.del');
+  if(del){
+    e.stopPropagation();
+    if(!confirm('确定删除这条加分记录？')) return;
+    del.disabled = true;
+    try{
+      await apiDelete(del.dataset.rid);
+      toast('已删除');
+      await refresh(true);
+    }catch(err){
+      toast('删除失败：' + err.message, true);
+      del.disabled = false;
+    }
+    return;
+  }
+  const tr = e.target.closest('.main-row');
+  if(!tr) return;
+  const id = Number(tr.dataset.id);
+  if(openRows.has(id)) openRows.delete(id); else openRows.add(id);
+  renderAdmin();
+});
+
+document.getElementById('adminReset').addEventListener('click', async ()=>{
+  if(!confirm('确定清空全部加分记录？不可恢复！')) return;
+  if(!confirm('再次确认：清空所有 30 位选手的记录？')) return;
+  try{
+    await apiReset();
+    openRows.clear();
+    toast('已清空全部记录');
+    await refresh(true);
+  }catch(err){
+    toast('清空失败：' + err.message, true);
+  }
+});
+
+document.getElementById('adminExport').addEventListener('click', ()=>{
+  const map = calcScores();
+  const list = Object.values(map).sort((a,b)=>b.total-a.total);
+  let csv = '序号,投壶分,套圈分,答题分,总分\n';
+  list.forEach(m=>{ csv += `${m.id},${m['投壶']},${m['套圈']},${m['答题']},${m.total}\n`; });
+  const blob = new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '瀛东村双节活动总分榜.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+  toast('已导出');
+});
+document.getElementById('adminLogout').addEventListener('click', logout);
+
+/* ---------- 计分员渲染 ---------- */
+function renderScorer(){
+  const map = calcScores();
+  let html = '';
+  for(let i=1;i<=COUNT;i++){
+    const m = map[i];
+    html += `<tr data-id="${i}">
+      <td class="idx-cell" style="cursor:default">${i}</td>
+      <td data-c="投壶">${m['投壶']}</td>
+      <td data-c="套圈">${m['套圈']}</td>
+      <td data-c="答题">${m['答题']}</td>
+      <td><div class="op-cell">
+        <select class="cat"><option>投壶</option><option>套圈</option><option>答题</option></select>
+        <input class="score" type="number" step="1" inputmode="numeric" value="1">
+        <button class="addBtn">加 分</button>
+      </div></td>
+    </tr>`;
+  }
+  const tb = document.getElementById('scorerBody');
+  tb.innerHTML = html;
+  tb.querySelectorAll('tr').forEach(tr=>{
+    tr.querySelector('.cat').value = lastCat;
+    tr.querySelector('.score').value = lastScore;
+  });
+}
+function updateScorerNumbers(){
+  const map = calcScores();
+  document.querySelectorAll('#scorerBody tr').forEach(tr=>{
+    const id = Number(tr.dataset.id);
+    const m = map[id];
+    ['投壶','套圈','答题'].forEach(c=>{
+      const cell = tr.querySelector(`[data-c="${c}"]`);
+      if(cell) cell.textContent = m[c];
+    });
+  });
+}
+
+document.getElementById('scorerBody').addEventListener('click', async e=>{
+  const btn = e.target.closest('.addBtn');
+  if(!btn) return;
+  const tr  = btn.closest('tr');
+  const id  = Number(tr.dataset.id);
+  const cat = tr.querySelector('.cat').value;
+  const raw = tr.querySelector('.score').value.trim();
+  const score = Number(raw);
+
+  if(raw === '' || !Number.isFinite(score) || score === 0){
+    toast('请输入有效分数（不能为 0）', true);
+    return;
+  }
+  lastCat = cat; lastScore = raw;
+  btn.disabled = true;
+
+  try{
+    await apiInsert({ id: genId(), person:id, cat, score, by:user, time:Date.now() });
+    /* 本地即时反馈 */
+    const m = calcScores()[id];
+    m[cat] += score; m.total += score; m.count++;
+    tr.querySelector(`[data-c="${cat}"]`).textContent = m[cat];
+    tr.classList.remove('flash'); void tr.offsetWidth; tr.classList.add('flash');
+    toast(`${id} 号 · ${cat} ${score>0?'+':''}${score} 分 已记录`);
+    await refresh(true);
+    refreshMyLog();
+  }catch(err){
+    toast('加分失败：' + err.message, true);
+    console.error(err);
+  }finally{
+    btn.disabled = false;
+  }
+});
+
+function refreshMyLog(){
+  const mine = records.filter(r=>r.by===user).sort((a,b)=>b.time-a.time).slice(0,12);
+  const box = document.getElementById('myLog');
+  if(!mine.length){ box.innerHTML = '<div class="empty">还没有添加过记录</div>'; return; }
+  box.innerHTML = `<table class="mini"><thead><tr>
+    <th>时间</th><th>序号</th><th>项目</th><th>分值</th><th style="width:80px">操作</th>
+  </tr></thead><tbody>` + mine.map(r=>`<tr>
+    <td>${fmtTime(r.time)}</td><td>${r.person}</td><td>${r.cat}</td>
+    <td class="${r.score>=0?'plus':'minus'}">${r.score>0?'+':''}${r.score}</td>
+    <td><button class="del undo" data-rid="${r.id}">撤销</button></td>
+  </tr>`).join('') + '</tbody></table>';
+}
+
+document.getElementById('myLog').addEventListener('click', async e=>{
+  const b = e.target.closest('.undo');
+  if(!b) return;
+  if(!confirm('撤销这条加分记录？')) return;
+  b.disabled = true;
+  try{
+    await apiDelete(b.dataset.rid);
+    toast('已撤销');
+    await refresh(true);
+    refreshMyLog();
+  }catch(err){
+    toast('撤销失败：' + err.message, true);
+    b.disabled = false;
+  }
+});
+
+document.getElementById('scorerLogout').addEventListener('click', logout);
+
+/* ---------- 登录交互 ---------- */
+document.getElementById('loginBtn').addEventListener('click', doLogin);
+document.getElementById('account').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') doLogin();
+});
+
+/* ---------- 兜底刷新 ---------- */
+window.addEventListener('online', ()=>{ if(role) refresh(true); });
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden && role) refresh(true);
+});
+setInterval(()=>{ if(role) refresh(true); }, 30000);
+
+/* ---------- 启动 ---------- */
+initBackend();
+setModeBadge();
+
+const savedUser = localStorage.getItem(USER_KEY);
+if(savedUser && (savedUser === ADMIN || SCORERS.includes(savedUser))){
+  user = savedUser;
+  role = (savedUser === ADMIN) ? 'admin' : 'scorer';
+  enterApp();
+}else{
+  showView('loginView');
+}
+</script>
+</body>
+</html>

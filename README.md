@@ -1,1 +1,7 @@
-# yingdong-scoreboard
+# 瀛东村活动记分系统
+
+静态网页，通过 GitHub Pages 发布。分数同步使用原网页配置的 Supabase 项目。
+
+Supabase 浏览器程序库已随站点托管，避免依赖外部 CDN。
+
+当前账号选择是前端角色切换，不是身份认证；数据库权限取决于 Supabase 端的策略。
